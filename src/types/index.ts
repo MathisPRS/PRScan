@@ -29,6 +29,7 @@ export interface CloudAccount {
 
 export type RootStackParamList = {
   Main: undefined;
+  FileManager: undefined;
   FilePreview: { file: ScannedFile };
   ScanDocument: undefined;
   PictureToPdf: undefined;

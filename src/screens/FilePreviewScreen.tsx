@@ -39,7 +39,11 @@ export function FilePreviewScreen() {
   };
 
   const isViewable = file.type === 'pdf' || file.type === 'image';
-  const fileUri = Platform.OS === 'ios' ? file.path : `file://${file.path}`;
+  // On Android, documentDirectory already starts with file:// — avoid doubling the prefix.
+  const fileUri =
+    Platform.OS === 'android' && !file.path.startsWith('file://')
+      ? `file://${file.path}`
+      : file.path;
 
   return (
     <View style={styles.container}>

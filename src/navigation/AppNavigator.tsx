@@ -98,6 +98,11 @@ export function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen
+          name="FileManager"
+          component={FileManagerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
           name="FilePreview"
           component={FilePreviewScreen}
           options={{ animation: 'slide_from_right' }}

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,6 +29,8 @@ export function HomeScreen() {
   const { t } = useTranslation();
   const { files, loading, refresh } = useFiles();
   const [uploadTarget, setUploadTarget] = React.useState<ScannedFile | null>(null);
+  const [renameTarget, setRenameTarget] = useState<ScannedFile | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const recentFiles = files.slice(0, 5);
 
@@ -38,7 +43,7 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleFileManager = useCallback(() => {
-    navigation.navigate('Main');
+    navigation.navigate('FileManager');
   }, [navigation]);
 
   const handlePreview = useCallback((file: ScannedFile) => {
@@ -46,19 +51,33 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleRename = useCallback((file: ScannedFile) => {
-    Alert.prompt(
-      t('files_rename_title'),
-      t('files_rename_message'),
-      async (newName) => {
-        if (newName && newName.trim()) {
-          await fileService.renameFile(file, newName.trim());
-          refresh();
-        }
-      },
-      'plain-text',
-      file.name.replace(/\.[^.]+$/, ''),
-    );
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        t('files_rename_title'),
+        t('files_rename_message'),
+        async (newName) => {
+          if (newName && newName.trim()) {
+            await fileService.renameFile(file, newName.trim());
+            refresh();
+          }
+        },
+        'plain-text',
+        file.name.replace(/\.[^.]+$/, ''),
+      );
+    } else {
+      setRenameValue(file.name.replace(/\.[^.]+$/, ''));
+      setRenameTarget(file);
+    }
   }, [refresh, t]);
+
+  const commitRename = async () => {
+    if (renameTarget && renameValue.trim()) {
+      await fileService.renameFile(renameTarget, renameValue.trim());
+      refresh();
+    }
+    setRenameTarget(null);
+    setRenameValue('');
+  };
 
   const handleDelete = useCallback(async (file: ScannedFile) => {
     await fileService.deleteFile(file);
@@ -155,6 +174,33 @@ export function HomeScreen() {
           }}
         />
       )}
+
+      {/* Android rename dialog */}
+      <Modal visible={!!renameTarget} transparent animationType="fade" onRequestClose={() => setRenameTarget(null)}>
+        <View style={styles.renameOverlay}>
+          <View style={styles.renameCard}>
+            <Text style={styles.renameTitle}>{t('files_rename_title')}</Text>
+            <Text style={styles.renameMsg}>{t('files_rename_message')}</Text>
+            <TextInput
+              style={styles.renameInput}
+              value={renameValue}
+              onChangeText={setRenameValue}
+              autoFocus
+              selectTextOnFocus
+              returnKeyType="done"
+              onSubmitEditing={commitRename}
+            />
+            <View style={styles.renameActions}>
+              <TouchableOpacity onPress={() => setRenameTarget(null)} style={styles.renameCancelBtn}>
+                <Text style={styles.renameCancelText}>{t('common_cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={commitRename} style={styles.renameConfirmBtn}>
+                <Text style={styles.renameConfirmText}>{t('common_save')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -173,4 +219,15 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: Spacing.huge, gap: Spacing.sm },
   emptyTitle: { ...Typography.titleLarge, color: Colors.textSecondary, marginTop: Spacing.md },
   emptySubtitle: { ...Typography.bodyMedium, color: Colors.textTertiary, textAlign: 'center', paddingHorizontal: Spacing.xl },
+  // Android rename modal
+  renameOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing.xl },
+  renameCard: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.xl, width: '100%', ...Shadow.lg },
+  renameTitle: { ...Typography.titleLarge, color: Colors.textPrimary, marginBottom: Spacing.xs },
+  renameMsg: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: Spacing.md },
+  renameInput: { borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.bodyMedium, color: Colors.textPrimary, backgroundColor: Colors.background },
+  renameActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.md, marginTop: Spacing.lg },
+  renameCancelBtn: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
+  renameCancelText: { ...Typography.titleMedium, color: Colors.textSecondary },
+  renameConfirmBtn: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, backgroundColor: Colors.primary, borderRadius: Radius.sm },
+  renameConfirmText: { ...Typography.titleMedium, color: Colors.white },
 });

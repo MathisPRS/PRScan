@@ -8,9 +8,9 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -21,6 +21,9 @@ import { pdfService } from '../services/pdfService';
 import { fileService } from '../services/fileService';
 import { generateFileName } from '../utils/format';
 import { useTranslation } from '../i18n';
+import { RootStackParamList } from '../types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 type ConvertState = 'idle' | 'converting' | 'done' | 'error';
 
@@ -31,7 +34,7 @@ interface SelectedImage {
 }
 
 export function PictureToPdfScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const { t } = useTranslation();
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [convertState, setConvertState] = useState<ConvertState>('idle');

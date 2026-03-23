@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../theme';
@@ -41,8 +40,9 @@ export const CloudUploadModal: React.FC<CloudUploadModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
         <View style={styles.handle} />
         <Text style={styles.title}>{t('cloud_save_to')}</Text>
         <Text style={styles.subtitle} numberOfLines={1}>{fileName}</Text>
@@ -68,14 +68,19 @@ export const CloudUploadModal: React.FC<CloudUploadModalProps> = ({
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
           <Text style={styles.cancelText}>{t('common_cancel')}</Text>
         </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {

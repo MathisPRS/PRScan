@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import DocumentScanner, { ResponseType } from 'react-native-document-scanner-plugin';
+import DocumentScanner, { ResponseType, ScanDocumentResponseStatus } from 'react-native-document-scanner-plugin';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -68,7 +68,7 @@ export function ScanScreen() {
         croppedImageQuality: 100,
       });
 
-      if (status === 'cancel' || !scannedImages || scannedImages.length === 0) {
+      if (status === ScanDocumentResponseStatus.Cancel || !scannedImages || scannedImages.length === 0) {
         setScanState('idle');
         return;
       }
@@ -92,7 +92,10 @@ export function ScanScreen() {
   const handleDone = () => {
     setScanState('idle');
     setScannedCount(0);
-    if (navigation.canGoBack()) navigation.goBack();
+    // When used as a modal (pushed from stack), go back; when in the tab, just reset to idle.
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const handleScanAnother = () => {

@@ -4,7 +4,10 @@ import { Alert } from 'react-native';
 import { ScannedFile, CloudProvider } from '../types';
 import { getFileType, sanitizeFileName } from '../utils/format';
 
-const DOCS_DIR = FileSystem.documentDirectory + 'prscan/';
+if (!FileSystem.documentDirectory) {
+  throw new Error('FileSystem.documentDirectory is null — cannot initialise storage.');
+}
+const DOCS_DIR: string = FileSystem.documentDirectory + 'prscan/';
 
 // Ensure the storage directory exists
 async function ensureDir(): Promise<void> {
