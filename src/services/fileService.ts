@@ -30,7 +30,11 @@ export async function listFiles(): Promise<ScannedFile[]> {
   }));
 }
 
-export async function saveFile(blob: Blob, fileName: string): Promise<ScannedFile> {
+export async function saveFile(
+  blob: Blob,
+  fileName: string,
+  ocrText?: string,
+): Promise<ScannedFile> {
   const db = await getDB();
   const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const data = await blob.arrayBuffer();
@@ -42,6 +46,7 @@ export async function saveFile(blob: Blob, fileName: string): Promise<ScannedFil
     createdAt: new Date(),
     modifiedAt: new Date(),
     type: getFileType(fileName),
+    ...(ocrText ? { ocrText } : {}),
     data,
   };
   await db.put(STORE, entry);

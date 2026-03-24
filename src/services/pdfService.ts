@@ -20,7 +20,7 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function imagesToPdf(images: (File | Blob)[], fileName?: string): Promise<string> {
+export async function imagesToPdf(images: (File | Blob)[], fileName?: string, ocrText?: string): Promise<string> {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();   // 210mm
   const pageH = pdf.internal.pageSize.getHeight();  // 297mm
@@ -47,7 +47,7 @@ export async function imagesToPdf(images: (File | Blob)[], fileName?: string): P
     : `${generateFileName('scan')}.pdf`;
 
   const pdfBlob = pdf.output('blob');
-  const saved = await fileService.saveFile(pdfBlob, name);
+  const saved = await fileService.saveFile(pdfBlob, name, ocrText);
   return saved.id;
 }
 

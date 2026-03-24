@@ -16,9 +16,7 @@ export function AppRouter() {
         <Route path="/files"    element={<FileManagerPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
-      <Route element={<BottomTabLayout />}>
-        <Route path="/scan" element={<ScanPage />} />
-      </Route>
+      <Route path="/scan"           element={<ScanPage />} />
       <Route path="/preview"        element={<FilePreviewPage />} />
       <Route path="/picture-to-pdf" element={<PictureToPdfPage />} />
     </Routes>

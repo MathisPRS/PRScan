@@ -1,3 +1,4 @@
+/* ─── Idle state ──────────────────────────────────────────────────────────── */
 .idleContainer {
   display: flex; flex-direction: column; align-items: center;
   padding: var(--spacing-xxxl) var(--spacing-xl);
@@ -12,10 +13,10 @@
 }
 
 .idleTitle { font-size: 26px; font-weight: 700; color: var(--color-text-primary); }
-.idleSub { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; white-space: pre-line; max-width: 280px; }
+.idleSub   { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; white-space: pre-line; max-width: 280px; }
 
-.features { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: var(--spacing-sm) 0; width: 100%; max-width: 280px; }
-.featureRow { display: flex; align-items: center; gap: var(--spacing-md); background: var(--color-neutral-100); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); }
+.features    { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: var(--spacing-sm) 0; width: 100%; max-width: 280px; }
+.featureRow  { display: flex; align-items: center; gap: var(--spacing-md); background: var(--color-neutral-100); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); }
 .featureIcon { color: var(--color-primary); display: flex; }
 .featureLabel { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
 
@@ -32,41 +33,175 @@
 .startBtn:active:not(:disabled) { transform: scale(0.97); }
 .startBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Camera view */
-.cameraPage { display: flex; flex-direction: column; height: 100%; background: #000; }
-.cameraView { flex: 1; position: relative; overflow: hidden; }
-.video { width: 100%; height: 100%; object-fit: cover; display: block; }
-.overlayCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-
-.cameraControls {
-  background: rgba(0,0,0,0.85);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  padding-bottom: calc(var(--spacing-lg) + var(--safe-area-bottom));
-  display: flex; flex-direction: column; align-items: center; gap: var(--spacing-md);
+/* ─── Camera — true fullscreen (covers status bar + bottom nav) ───────────── */
+.cameraPage {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.pageCount { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.7); }
+/* Green flash on auto-capture */
+.flashOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(76, 175, 80, 0.35);
+  pointer-events: none;
+  animation: flashFade 0.25s ease-out forwards;
+}
+@keyframes flashFade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
 
-.captureBtn {
-  width: 72px; height: 72px; border-radius: 50%;
-  border: 4px solid rgba(255,255,255,0.8);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.1s;
+/* Video fills space between top and bottom bars */
+.cameraView {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.overlayCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ─── Top bar ─────────────────────────────────────────────────────────────── */
+.topBar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 12px) + 10px) 16px 12px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
+  flex-shrink: 0;
+}
+
+.pageCounter   { display: flex; align-items: baseline; gap: 2px; }
+.pageCountNum  { font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
+.pageCountLabel { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); }
+
+.topActions { display: flex; align-items: center; gap: 10px; }
+
+.savePdfBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2196F3;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(33,150,243,0.4);
+  transition: transform 0.1s, background 0.2s;
+}
+.savePdfBtn:active { transform: scale(0.95); background: #1976D2; }
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+.closeBtn:active { background: rgba(255,255,255,0.3); }
+
+/* ─── Bottom bar ──────────────────────────────────────────────────────────── */
+.bottomBar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+  flex-shrink: 0;
+}
+
+.hintText {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  letter-spacing: 0.3px;
+  text-align: center;
+  height: 18px;
+}
+
+/* Shutter + progress ring */
+.shutterWrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
 }
-.captureBtn:active { transform: scale(0.9); }
-.captureInner { width: 54px; height: 54px; border-radius: 50%; background: #fff; }
+.shutterWrap:active { transform: scale(0.93); }
 
-.cameraActions { display: flex; gap: var(--spacing-md); }
-.saveBtn { background: var(--color-primary); color: #fff; padding: var(--spacing-sm) var(--spacing-xl); border-radius: var(--radius-full); font-size: 14px; font-weight: 700; }
-.cancelBtn { background: rgba(255,255,255,0.15); color: #fff; padding: var(--spacing-sm) var(--spacing-xl); border-radius: var(--radius-full); font-size: 14px; font-weight: 600; }
+.progressRing {
+  position: absolute;
+  inset: 0;
+  width: 80px;
+  height: 80px;
+}
 
-/* States */
-.center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--spacing-xl); gap: var(--spacing-lg); }
+.shutterInner {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Processing / Done / Error states ───────────────────────────────────── */
+.center {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: var(--spacing-xl); gap: var(--spacing-lg);
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
-.spinner { width: 48px; height: 48px; border: 4px solid var(--color-neutral-200); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--color-neutral-200);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
 .statusTitle { font-size: 24px; font-weight: 700; color: var(--color-text-primary); text-align: center; }
-.statusSub { font-size: 14px; color: var(--color-text-secondary); text-align: center; }
+.statusSub   { font-size: 14px; color: var(--color-text-secondary); text-align: center; }
+
 .btnRow { display: flex; gap: var(--spacing-md); margin-top: var(--spacing-sm); flex-wrap: wrap; justify-content: center; }
-.primaryBtn { background: var(--color-primary); color: #fff; padding: var(--spacing-md) var(--spacing-xl); border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; }
+.primaryBtn   { background: var(--color-primary); color: #fff; padding: var(--spacing-md) var(--spacing-xl); border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; }
 .secondaryBtn { background: var(--color-neutral-100); color: var(--color-text-primary); padding: var(--spacing-md) var(--spacing-xl); border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; }

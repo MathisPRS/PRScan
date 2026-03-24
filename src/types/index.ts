@@ -8,6 +8,8 @@ export interface ScannedFile {
   type: 'pdf' | 'image' | 'other';
   pageCount?: number;
   thumbnail?: string;
+  /** Full text extracted by Tesseract OCR after scan */
+  ocrText?: string;
 }
 
 export interface StorageInfo {
