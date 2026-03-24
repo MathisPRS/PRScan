@@ -1,0 +1,11 @@
+.preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: #1a1a1a; }
+.iframe { width: 100%; flex: 1; border: none; }
+.image { width: 100%; height: 100%; object-fit: contain; }
+.center { display: flex; justify-content: center; align-items: center; flex: 1; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.iconBtn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--color-neutral-100); }
+.unsupported { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--spacing-xl); }
+.unsupTitle { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: var(--spacing-sm); }
+.unsupSub { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: var(--spacing-xxl); text-align: center; }
+.openBtn { background: var(--color-primary); color: #fff; padding: var(--spacing-md) var(--spacing-xl); border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; }

@@ -1,15 +1,8 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../theme';
+import { HardDrive, Cloud, X } from 'lucide-react';
 import { CloudProvider } from '../types';
 import { useTranslation } from '../i18n';
+import styles from './CloudUploadModal.module.css';
 
 interface CloudUploadModalProps {
   visible: boolean;
@@ -18,125 +11,35 @@ interface CloudUploadModalProps {
   onSelect: (provider: CloudProvider) => void;
 }
 
-export const CloudUploadModal: React.FC<CloudUploadModalProps> = ({
-  visible,
-  fileName,
-  onClose,
-  onSelect,
-}) => {
-  const { t } = useTranslation();
+const providers: { id: CloudProvider; label: string; icon: React.ReactNode; color: string }[] = [
+  { id: 'local',        label: 'cloud_local',        icon: <HardDrive size={22} />, color: '#2E7D32' },
+  { id: 'google_drive', label: 'cloud_google_drive',  icon: <Cloud size={22} />,     color: '#1A73E8' },
+  { id: 'onedrive',     label: 'cloud_onedrive',      icon: <Cloud size={22} />,     color: '#0078D4' },
+  { id: 'icloud',       label: 'cloud_icloud',        icon: <Cloud size={22} />,     color: '#555' },
+];
 
-  const PROVIDERS: { id: CloudProvider; labelKey: 'cloud_local' | 'cloud_google_drive' | 'cloud_onedrive' | 'cloud_icloud'; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
-    { id: 'local', labelKey: 'cloud_local', icon: 'phone-portrait-outline', color: Colors.tertiary },
-    { id: 'google_drive', labelKey: 'cloud_google_drive', icon: 'logo-google', color: '#4285F4' },
-    { id: 'onedrive', labelKey: 'cloud_onedrive', icon: 'cloud-outline', color: '#0078D4' },
-    { id: 'icloud', labelKey: 'cloud_icloud', icon: 'cloud-outline', color: '#007AFF' },
-  ];
+export function CloudUploadModal({ visible, fileName, onClose, onSelect }: CloudUploadModalProps) {
+  const { t } = useTranslation();
+  if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
-        <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>{t('cloud_save_to')}</Text>
-        <Text style={styles.subtitle} numberOfLines={1}>{fileName}</Text>
-
-        {PROVIDERS.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.row}
-            onPress={() => {
-              onSelect(p.id);
-              onClose();
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconWrap, { backgroundColor: p.color + '20' }]}>
-              <Ionicons name={p.icon} size={22} color={p.color} />
-            </View>
-            <Text style={styles.rowLabel}>{t(p.labelKey)}</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.neutral400} />
-          </TouchableOpacity>
-        ))}
-
-        <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-          <Text style={styles.cancelText}>{t('common_cancel')}</Text>
-        </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.sheet} onClick={e => e.stopPropagation()}>
+        <div className={styles.handle} />
+        <div className={styles.titleRow}>
+          <span className={styles.title}>{t('cloud_save_to')}</span>
+          <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
+        </div>
+        <p className={styles.fileName}>{fileName}</p>
+        <div className={styles.list}>
+          {providers.map(p => (
+            <button key={p.id} className={styles.providerBtn} onClick={() => onSelect(p.id)}>
+              <span className={styles.providerIcon} style={{ color: p.color }}>{p.icon}</span>
+              <span className={styles.providerLabel}>{t(p.label as any)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
-    paddingTop: Spacing.md,
-    ...Shadow.lg,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.neutral300,
-    alignSelf: 'center',
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    ...Typography.headlineMedium,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    ...Typography.titleMedium,
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-  cancelBtn: {
-    marginTop: Spacing.xl,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  cancelText: {
-    ...Typography.titleMedium,
-    color: Colors.primary,
-  },
-});
+}

@@ -19,16 +19,6 @@ export const fr: Record<TranslationKey, string> = {
   // --- App ---
   app_name: 'PRScan',
 
-  // --- Home Screen ---
-  home_hero_label: 'MOTEUR DE DOCUMENTATION',
-  home_hero_title: 'Architecture\nDigitale',
-  home_scan_document: 'Scanner un document',
-  home_picture_to_pdf: 'Photo → PDF',
-  home_file_management: 'Gestionnaire de fichiers',
-  home_recent_documents: 'DOCUMENTS RÉCENTS',
-  home_empty_title: 'Aucun document pour l\'instant',
-  home_empty_subtitle: 'Appuyez sur "Scanner un document" pour commencer',
-
   // --- Scan Screen ---
   scan_title: 'Scanner un document',
   scan_subtitle: 'Pointez la caméra vers un document.\nL\'app détecte automatiquement les bords,\nrecadre et supprime l\'arrière-plan.',
@@ -121,6 +111,7 @@ export const fr: Record<TranslationKey, string> = {
   // --- Settings Screen ---
   settings_title: 'Réglages',
   settings_section_cloud: 'STOCKAGE CLOUD',
+  settings_section_archive: 'DOSSIER D\'ARCHIVAGE LOCAL',
   settings_section_scan: 'PRÉFÉRENCES DE SCAN',
   settings_section_display: 'AFFICHAGE',
   settings_section_language: 'LANGUE',
@@ -131,6 +122,12 @@ export const fr: Record<TranslationKey, string> = {
   settings_cloud_disconnect: 'Déconnecter',
   settings_cloud_connect_title: 'Connecter un compte',
   settings_cloud_connect_message: 'La connexion à %s sera disponible dans une prochaine mise à jour.',
+  settings_cloud_icloud_info: 'Nécessite un compte Apple Developer (99 $/an)',
+  settings_archive_pick: 'Choisir un dossier',
+  settings_archive_change: 'Changer',
+  settings_archive_clear: 'Supprimer',
+  settings_archive_none: 'Aucun dossier sélectionné',
+  settings_archive_hint: 'Chrome / Edge uniquement — non supporté sur Safari et iOS',
   settings_high_quality: 'Scan haute qualité',
   settings_high_quality_subtitle: '100% de qualité — fichier plus lourd',
   settings_auto_save: 'Sauvegarde auto en PDF',

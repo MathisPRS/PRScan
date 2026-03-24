@@ -1,13 +1,10 @@
 export const Colors = {
-  // Brand
   primary: '#E53935',
   primaryDark: '#B71C1C',
   primaryLight: '#EF9A9A',
   secondary: '#C1554D',
   tertiary: '#0087A0',
   tertiaryLight: '#E0F4F8',
-
-  // Neutral
   neutral900: '#1A1C1E',
   neutral800: '#2C2F33',
   neutral700: '#3D4045',
@@ -19,8 +16,6 @@ export const Colors = {
   neutral100: '#F4F5F7',
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
-
-  // Semantic
   background: '#F4F5F7',
   surface: '#FFFFFF',
   border: '#E8EAED',
@@ -28,16 +23,12 @@ export const Colors = {
   textSecondary: '#5A5E63',
   textTertiary: '#8A8E93',
   textInverse: '#FFFFFF',
-
-  // Status
   success: '#2E7D32',
   successLight: '#E8F5E9',
   warning: '#F57C00',
   warningLight: '#FFF3E0',
   error: '#C62828',
   errorLight: '#FFEBEE',
-
-  // File type
   pdfRed: '#E53935',
   pdfRedLight: '#FFEBEE',
 };

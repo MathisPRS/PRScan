@@ -1,143 +1,81 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../theme';
+import React, { useState, useRef, useEffect } from 'react';
+import { FileText, Image, Ellipsis, Eye, Share2, Upload, Pencil, Trash2 } from 'lucide-react';
 import { ScannedFile } from '../types';
 import { formatFileSize, formatDate } from '../utils/format';
 import { useTranslation } from '../i18n';
+import styles from './FileListItem.module.css';
 
 interface FileListItemProps {
   file: ScannedFile;
-  onPress: () => void;
-  onRename: () => void;
-  onDelete: () => void;
-  onShare: () => void;
-  onUpload: () => void;
+  onPress: (file: ScannedFile) => void;
+  onRename: (file: ScannedFile) => void;
+  onDelete: (file: ScannedFile) => void;
+  onShare: (file: ScannedFile) => void;
+  onUpload: (file: ScannedFile) => void;
 }
 
-export const FileListItem: React.FC<FileListItemProps> = ({
-  file,
-  onPress,
-  onRename,
-  onDelete,
-  onShare,
-  onUpload,
-}) => {
+export function FileListItem({ file, onPress, onRename, onDelete, onShare, onUpload }: FileListItemProps) {
   const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const showMenu = () => {
-    Alert.alert(file.name, undefined, [
-      {
-        text: t('common_preview'),
-        onPress,
-      },
-      {
-        text: t('common_share'),
-        onPress: onShare,
-      },
-      {
-        text: t('common_upload_cloud'),
-        onPress: onUpload,
-      },
-      {
-        text: t('common_rename'),
-        onPress: onRename,
-      },
-      {
-        text: t('common_delete'),
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert(
-            t('files_delete_confirm_title'),
-            t('files_delete_confirm_message', file.name),
-            [
-              { text: t('common_cancel'), style: 'cancel' },
-              { text: t('common_delete'), style: 'destructive', onPress: onDelete },
-            ],
-          ),
-      },
-      { text: t('common_cancel'), style: 'cancel' },
-    ]);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const handleDelete = () => {
+    setMenuOpen(false);
+    if (window.confirm(`${t('files_delete_confirm_title')}\n${t('files_delete_confirm_message').replace('%s', file.name)}`)) {
+      onDelete(file);
+    }
   };
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      {/* File icon */}
-      <View style={styles.iconWrap}>
-        <Ionicons
-          name={file.type === 'pdf' ? 'document-text' : 'image'}
-          size={24}
-          color={Colors.primary}
-        />
-      </View>
-
-      {/* File info */}
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1} ellipsizeMode="middle">
-          {file.name}
-        </Text>
-        <Text style={styles.meta}>
-          {formatFileSize(file.size)} · {formatDate(file.modifiedAt)}
-        </Text>
-      </View>
-
-      {/* 3-dot menu */}
-      <TouchableOpacity
-        onPress={showMenu}
-        style={styles.menuBtn}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="ellipsis-vertical" size={20} color={Colors.neutral500} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+    <div className={styles.item}>
+      <button className={styles.main} onClick={() => onPress(file)}>
+        <div className={styles.iconWrap}>
+          {file.type === 'pdf'
+            ? <FileText size={20} color="var(--color-primary)" />
+            : <Image size={20} color="var(--color-tertiary)" />}
+        </div>
+        <div className={styles.info}>
+          <span className={styles.name}>{file.name}</span>
+          <span className={styles.meta}>
+            {formatFileSize(file.size)} · {formatDate(new Date(file.createdAt))}
+          </span>
+        </div>
+      </button>
+      <div className={styles.menuWrap} ref={menuRef}>
+        <button className={styles.moreBtn} onClick={() => setMenuOpen(v => !v)} aria-label="More">
+          <Ellipsis size={18} color="var(--color-text-tertiary)" />
+        </button>
+        {menuOpen && (
+          <div className={styles.menu}>
+            <button className={styles.menuItem} onClick={() => { setMenuOpen(false); onPress(file); }}>
+              <Eye size={16} /><span>{t('common_preview')}</span>
+            </button>
+            <button className={styles.menuItem} onClick={() => { setMenuOpen(false); onShare(file); }}>
+              <Share2 size={16} /><span>{t('common_share')}</span>
+            </button>
+            <button className={styles.menuItem} onClick={() => { setMenuOpen(false); onUpload(file); }}>
+              <Upload size={16} /><span>{t('common_upload_cloud')}</span>
+            </button>
+            <button className={styles.menuItem} onClick={() => { setMenuOpen(false); onRename(file); }}>
+              <Pencil size={16} /><span>{t('common_rename')}</span>
+            </button>
+            <div className={styles.menuDivider} />
+            <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={handleDelete}>
+              <Trash2 size={16} /><span>{t('common_delete')}</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: Spacing.md,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.pdfRedLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    ...Typography.titleMedium,
-    color: Colors.textPrimary,
-  },
-  meta: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  menuBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+}

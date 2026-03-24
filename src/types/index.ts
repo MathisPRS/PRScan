@@ -2,7 +2,7 @@ export interface ScannedFile {
   id: string;
   name: string;
   path: string;
-  size: number; // bytes
+  size: number;
   createdAt: Date;
   modifiedAt: Date;
   type: 'pdf' | 'image' | 'other';
@@ -11,9 +11,9 @@ export interface ScannedFile {
 }
 
 export interface StorageInfo {
-  total: number; // bytes
-  used: number; // bytes
-  available: number; // bytes
+  total: number;
+  used: number;
+  available: number;
   percentAvailable: number;
 }
 
@@ -23,24 +23,9 @@ export interface CloudAccount {
   provider: CloudProvider;
   email?: string;
   connected: boolean;
-  accessToken?: string;
-  refreshToken?: string;
 }
 
-export type RootStackParamList = {
-  Main: undefined;
-  FileManager: undefined;
-  FilePreview: { file: ScannedFile };
-  ScanDocument: undefined;
-  PictureToPdf: undefined;
-  RenameFile: { file: ScannedFile };
-};
-
-export type BottomTabParamList = {
-  Files: undefined;
-  Scan: undefined;
-  Tools: undefined;
-  Settings: undefined;
-};
-
-export type SortOption = 'name_asc' | 'name_desc' | 'date_asc' | 'date_desc' | 'size_asc' | 'size_desc';
+export type SortOption =
+  | 'name_asc' | 'name_desc'
+  | 'date_asc' | 'date_desc'
+  | 'size_asc' | 'size_desc';

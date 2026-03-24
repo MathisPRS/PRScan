@@ -10,23 +10,19 @@ export const formatDate = (date: Date): string => {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days} days ago`;
-
   return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+    month: 'short', day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
 };
 
-export const sanitizeFileName = (name: string): string => {
-  return name.replace(/[^a-zA-Z0-9._\- ]/g, '_').trim();
-};
+export const sanitizeFileName = (name: string): string =>
+  name.replace(/[^a-zA-Z0-9._\- ]/g, '_').trim();
 
-export const generateFileName = (prefix: string = 'scan'): string => {
+export const generateFileName = (prefix = 'scan'): string => {
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');

@@ -1,90 +1,54 @@
-import * as Print from 'expo-print';
-import * as FileSystem from 'expo-file-system/legacy';
+import { jsPDF } from 'jspdf';
 import { fileService } from './fileService';
+import { generateFileName } from '../utils/format';
 
-/**
- * Convert an array of image URIs (file paths or base64) into a single PDF.
- * The PDF is saved to the PRScan documents directory.
- */
-async function imagesToPdf(imageUris: string[], fileName: string): Promise<string> {
-  // Build HTML with one image per page
-  const pages = await Promise.all(
-    imageUris.map(async (uri) => {
-      // If it's a file URI, read as base64 so WebKit can render it
-      let src = uri;
-      if (uri.startsWith('file://') || (uri.startsWith('/') && !uri.startsWith('//'))) {
-        try {
-          const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          src = `data:image/jpeg;base64,${base64}`;
-        } catch {
-          src = uri;
-        }
-      }
-
-      return `
-        <div style="
-          width: 210mm;
-          height: 297mm;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          page-break-after: always;
-          background: #fff;
-          margin: 0;
-          padding: 0;
-        ">
-          <img
-            src="${src}"
-            style="
-              max-width: 100%;
-              max-height: 100%;
-              object-fit: contain;
-              display: block;
-            "
-          />
-        </div>
-      `;
-    }),
-  );
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          html, body { width: 210mm; background: #fff; }
-          @page { size: A4; margin: 0; }
-        </style>
-      </head>
-      <body>
-        ${pages.join('')}
-      </body>
-    </html>
-  `;
-
-  // Generate PDF using expo-print
-  const { uri: tempUri } = await Print.printToFileAsync({
-    html,
-    base64: false,
-    width: 595,  // A4 width in points
-    height: 842, // A4 height in points
+function fileToDataURL(file: File | Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-
-  const pdfFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-  const saved = await fileService.saveFile(tempUri, pdfFileName);
-
-  // Clean up temp file
-  try {
-    await FileSystem.deleteAsync(tempUri, { idempotent: true });
-  } catch {}
-
-  return saved.path;
 }
 
-export const pdfService = {
-  imagesToPdf,
-};
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+export async function imagesToPdf(images: (File | Blob)[], fileName?: string): Promise<string> {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();   // 210mm
+  const pageH = pdf.internal.pageSize.getHeight();  // 297mm
+  const margin = 0;
+
+  for (let i = 0; i < images.length; i++) {
+    if (i > 0) pdf.addPage();
+    const dataUrl = await fileToDataURL(images[i]);
+    const img = await loadImage(dataUrl);
+    const ratio = Math.min(
+      (pageW - margin * 2) / img.naturalWidth,
+      (pageH - margin * 2) / img.naturalHeight
+    );
+    const w = img.naturalWidth * ratio;
+    const h = img.naturalHeight * ratio;
+    const x = margin + (pageW - margin * 2 - w) / 2;
+    const y = margin + (pageH - margin * 2 - h) / 2;
+    const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+    pdf.addImage(dataUrl, format, x, y, w, h);
+  }
+
+  const name = fileName
+    ? (fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`)
+    : `${generateFileName('scan')}.pdf`;
+
+  const pdfBlob = pdf.output('blob');
+  const saved = await fileService.saveFile(pdfBlob, name);
+  return saved.id;
+}
+
+export const pdfService = { imagesToPdf };

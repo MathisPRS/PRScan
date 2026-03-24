@@ -1,151 +1,43 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  View,
-  ActivityIndicator,
-  ViewStyle,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../theme';
+import { LucideIcon, ChevronRight, Loader } from 'lucide-react';
+import styles from './ActionCard.module.css';
 
 type Variant = 'primary' | 'outlined' | 'ghost';
 
 interface ActionCardProps {
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: LucideIcon;
   variant?: Variant;
-  onPress: () => void;
+  onPress?: () => void;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
   description?: string;
 }
 
-export const ActionCard: React.FC<ActionCardProps> = ({
-  label,
-  icon,
-  variant = 'outlined',
-  onPress,
-  loading = false,
-  disabled = false,
-  style,
-  description,
-}) => {
-  const isPrimary = variant === 'primary';
-  const isOutlined = variant === 'outlined';
-
+export function ActionCard({
+  label, icon: Icon, variant = 'outlined',
+  onPress, loading, disabled, description
+}: ActionCardProps) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
+    <button
+      className={`${styles.card} ${styles[variant]} ${disabled || loading ? styles.disabled : ''}`}
+      onClick={onPress}
       disabled={disabled || loading}
-      style={[
-        styles.base,
-        isPrimary && styles.primary,
-        isOutlined && styles.outlined,
-        variant === 'ghost' && styles.ghost,
-        disabled && styles.disabled,
-        style,
-      ]}
     >
-      <View style={styles.inner}>
+      <div className={styles.left}>
         {loading ? (
-          <ActivityIndicator
-            color={isPrimary ? Colors.white : Colors.primary}
-            size="small"
-          />
-        ) : (
-          <View style={[styles.iconWrap, isPrimary && styles.iconWrapPrimary]}>
-            <Ionicons
-              name={icon}
-              size={isPrimary ? 22 : 20}
-              color={isPrimary ? Colors.white : Colors.primary}
-            />
-          </View>
-        )}
-        <View style={styles.textWrap}>
-          <Text
-            style={[
-              styles.label,
-              isPrimary ? styles.labelPrimary : styles.labelOutlined,
-            ]}
-          >
-            {label}
-          </Text>
-          {description && (
-            <Text style={styles.description}>{description}</Text>
-          )}
-        </View>
-        {!isPrimary && (
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={Colors.neutral400}
-          />
-        )}
-      </View>
-    </TouchableOpacity>
+          <Loader size={20} className={styles.spinner} color={variant === 'primary' ? '#fff' : 'var(--color-primary)'} />
+        ) : Icon ? (
+          <Icon size={20} color={variant === 'primary' ? '#fff' : 'var(--color-primary)'} strokeWidth={2} />
+        ) : null}
+        <div className={styles.textBlock}>
+          <span className={styles.label}>{label}</span>
+          {description && <span className={styles.desc}>{description}</span>}
+        </div>
+      </div>
+      {variant !== 'primary' && (
+        <ChevronRight size={18} color="var(--color-text-tertiary)" />
+      )}
+    </button>
   );
-};
-
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.sm,
-  },
-  primary: {
-    backgroundColor: Colors.primary,
-    ...Shadow.md,
-  },
-  outlined: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.sm,
-  },
-  ghost: {
-    backgroundColor: Colors.neutral100,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  inner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryLight + '33',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrapPrimary: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  textWrap: {
-    flex: 1,
-  },
-  label: {
-    ...Typography.titleMedium,
-  },
-  labelPrimary: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  labelOutlined: {
-    color: Colors.textPrimary,
-  },
-  description: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-});
+}

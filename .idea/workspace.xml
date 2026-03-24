@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="152c7478-475f-4b31-8d58-019b26b12298" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/App.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/ActionCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/ActionCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/CloudUploadModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/CloudUploadModal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/FAB.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/FAB.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/FileListItem.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/FileListItem.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/StorageBar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/StorageBar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hooks/useFiles.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useFiles.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hooks/useStorage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useStorage.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/messages_en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/messages_en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/messages_fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/messages_fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/navigation/AppNavigator.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/FileManagerScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/FilePreviewScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/HomeScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/PictureToPdfScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/ScanScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/SettingsScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/ToolsScreen.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/fileService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/fileService.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/pdfService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/pdfService.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme/colors.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme/colors.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme/spacing.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme/spacing.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/theme/typography.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/theme/typography.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/format.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/format.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="3BMi09ilSABqQwgZgKriYU0KrLf" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "new-techno",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/mathis.reclusporras@cdbdx.biz/Documents/Perso/PRScan"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="152c7478-475f-4b31-8d58-019b26b12298" name="Changes" comment="" />
+      <created>1774305115100</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774305115100</updated>
+    </task>
+    <servers />
+  </component>
+</project>

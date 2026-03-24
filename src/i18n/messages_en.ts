@@ -17,16 +17,6 @@ export const en = {
   // --- App ---
   app_name: 'PRScan',
 
-  // --- Home Screen ---
-  home_hero_label: 'DOCUMENTATION ENGINE',
-  home_hero_title: 'Digital\nArchitecture',
-  home_scan_document: 'Scan Document',
-  home_picture_to_pdf: 'Picture → to PDF',
-  home_file_management: 'File Management',
-  home_recent_documents: 'RECENT DOCUMENTS',
-  home_empty_title: 'No documents yet',
-  home_empty_subtitle: 'Tap "Scan Document" to scan your first document',
-
   // --- Scan Screen ---
   scan_title: 'Scan Document',
   scan_subtitle: 'Point your camera at a document.\nThe app will automatically detect edges,\ncrop and remove the background.',
@@ -119,6 +109,7 @@ export const en = {
   // --- Settings Screen ---
   settings_title: 'Settings',
   settings_section_cloud: 'CLOUD STORAGE',
+  settings_section_archive: 'LOCAL ARCHIVE FOLDER',
   settings_section_scan: 'SCAN PREFERENCES',
   settings_section_display: 'DISPLAY',
   settings_section_language: 'LANGUAGE',
@@ -129,6 +120,12 @@ export const en = {
   settings_cloud_disconnect: 'Disconnect',
   settings_cloud_connect_title: 'Connect Account',
   settings_cloud_connect_message: 'Connecting to %s will be available in a future update.',
+  settings_cloud_icloud_info: 'Requires Apple Developer account ($99/year)',
+  settings_archive_pick: 'Choose Folder',
+  settings_archive_change: 'Change',
+  settings_archive_clear: 'Remove',
+  settings_archive_none: 'No folder selected',
+  settings_archive_hint: 'Chrome / Edge only — not supported on Safari or iOS',
   settings_high_quality: 'High Quality Scan',
   settings_high_quality_subtitle: '100% quality — larger file size',
   settings_auto_save: 'Auto-save as PDF',
