@@ -1,0 +1,9 @@
+services:
+  prscan:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: prscan
+    ports:
+      - "5173:80"
+    restart: unless-stopped
