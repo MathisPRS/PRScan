@@ -57,11 +57,21 @@ export function FilePreviewPage() {
           <div className={styles.center}><div className={styles.spinner} /></div>
         ) : blobUrl ? (
           file.type === 'pdf' ? (
-            <iframe
-              src={blobUrl}
-              className={styles.iframe}
-              title={file.name}
-            />
+            <object
+              data={`${blobUrl}#view=FitV&toolbar=0`}
+              type="application/pdf"
+              className={styles.pdfEmbed}
+              aria-label={file.name}
+            >
+              {/* Fallback for browsers that don't render PDF inline (e.g. iOS Safari) */}
+              <div className={styles.unsupported}>
+                <p className={styles.unsupTitle}>{t('preview_unsupported_title')}</p>
+                <p className={styles.unsupSub}>{t('preview_unsupported_subtitle')}</p>
+                <button className={styles.openBtn} onClick={() => fileService.shareFile(file)}>
+                  {t('preview_open_with')}
+                </button>
+              </div>
+            </object>
           ) : (
             <img src={blobUrl} alt={file.name} className={styles.image} />
           )

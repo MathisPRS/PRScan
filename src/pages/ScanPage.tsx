@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CircleCheck, CircleAlert, ScanText, Zap, Crop, FileOutput, X, Save } from 'lucide-react';
+import { CircleCheck, CircleAlert, X, Save } from 'lucide-react';
 import { Header } from '../components';
 import { pdfService } from '../services/pdfService';
 import { warmupOCR, recognizeText, detectTextBounds } from '../services/ocrService';
@@ -8,13 +8,14 @@ import { useTranslation } from '../i18n';
 import { generateFileName } from '../utils/format';
 import styles from './ScanPage.module.css';
 
-type ScanState = 'idle' | 'camera' | 'processing' | 'done' | 'error';
+// 'starting' = waiting for getUserMedia, 'camera' = live, rest = post-capture
+type ScanState = 'starting' | 'camera' | 'processing' | 'done' | 'error';
 
 declare const cv: any;
 
 // ~1.5 s at ~15 processed fps
-const STABLE_FRAMES_REQUIRED  = 22;
-const STABLE_DIST_THRESHOLD   = 20; // px
+const STABLE_FRAMES_REQUIRED = 22;
+const STABLE_DIST_THRESHOLD  = 20; // px
 
 interface Quad { pts: [number, number][] }
 
@@ -33,25 +34,25 @@ export function ScanPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [state, setState]           = useState<ScanState>('idle');
+  const [state, setState]               = useState<ScanState>('starting');
   const [scannedPages, setScannedPages] = useState<Blob[]>([]);
-  const [pageCount, setPageCount]   = useState(0);
-  const [error, setError]           = useState('');
-  const [cvReady, setCvReady]       = useState(false);
-  const [stream, setStream]         = useState<MediaStream | null>(null);
+  const [pageCount, setPageCount]       = useState(0);
+  const [error, setError]               = useState('');
+  const [cvReady, setCvReady]           = useState(false);
+  const [stream, setStream]             = useState<MediaStream | null>(null);
   const [autoProgress, setAutoProgress] = useState(0); // 0–1
-  const [flashGreen, setFlashGreen] = useState(false);
+  const [flashGreen, setFlashGreen]     = useState(false);
 
-  const videoRef         = useRef<HTMLVideoElement>(null);
-  const canvasRef        = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const animFrameRef     = useRef<number>(0);
-  const stableCountRef   = useRef<number>(0);
-  const lastQuadRef      = useRef<Quad | null>(null);
-  const capturingRef     = useRef<boolean>(false);
-  const ocrTextRef       = useRef<string>('');
-  // Timestamp of last OCR fallback attempt (throttle to once every 2 s)
+  const videoRef           = useRef<HTMLVideoElement>(null);
+  const canvasRef          = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef   = useRef<HTMLCanvasElement>(null);
+  const animFrameRef       = useRef<number>(0);
+  const stableCountRef     = useRef<number>(0);
+  const lastQuadRef        = useRef<Quad | null>(null);
+  const capturingRef       = useRef<boolean>(false);
+  const ocrTextRef         = useRef<string>('');
   const lastOcrFallbackRef = useRef<number>(0);
+  const streamRef          = useRef<MediaStream | null>(null); // mirror for callbacks
 
   // ── Load OpenCV.js ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -68,13 +69,15 @@ export function ScanPage() {
     return () => { if (script.parentNode) script.parentNode.removeChild(script); };
   }, []);
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────────
+  // ── Auto-start camera on mount ────────────────────────────────────────────
   useEffect(() => {
+    startCamera();
     return () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
       cancelAnimationFrame(animFrameRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     };
-  }, [stream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stopCamera = useCallback(() => {
     cancelAnimationFrame(animFrameRef.current);
@@ -82,32 +85,57 @@ export function ScanPage() {
     stableCountRef.current = 0;
     lastQuadRef.current    = null;
     setAutoProgress(0);
-    if (stream) { stream.getTracks().forEach(t => t.stop()); setStream(null); }
-  }, [stream]);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+      setStream(null);
+    }
+  }, []);
 
   // ── Start camera ──────────────────────────────────────────────────────────
   const startCamera = async () => {
-    setState('camera');
+    setState('starting');
     capturingRef.current   = false;
     stableCountRef.current = 0;
     lastQuadRef.current    = null;
+    ocrTextRef.current     = '';
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
+      streamRef.current = mediaStream;
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
-      }
-      // Pre-warm Tesseract in background so first OCR call is fast
+      setState('camera');
+      // warmup Tesseract in background
       warmupOCR();
     } catch (e: any) {
       setError(t('scan_permission_message'));
       setState('error');
     }
   };
+
+  // Attach stream to <video> once both stream and video element are ready
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [stream]);
+
+  // Persistent off-screen canvas used to snapshot video frames for OpenCV.
+  // cv.imread(videoElement) silently fails on many mobile browsers when the
+  // video is hardware-accelerated; drawing to an intermediate canvas first
+  // is the reliable cross-browser approach.
+  const snapCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  function getSnapCanvas(w: number, h: number): HTMLCanvasElement {
+    if (!snapCanvasRef.current) {
+      snapCanvasRef.current = document.createElement('canvas');
+    }
+    const c = snapCanvasRef.current;
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return c;
+  }
 
   // ── Edge-detection + auto-capture loop ───────────────────────────────────
   const drawEdgeOverlay = useCallback(() => {
@@ -124,11 +152,18 @@ export function ScanPage() {
 
     const W = video.videoWidth  || video.clientWidth;
     const H = video.videoHeight || video.clientHeight;
+    if (W === 0 || H === 0) {
+      animFrameRef.current = requestAnimationFrame(drawEdgeOverlay);
+      return;
+    }
     canvas.width  = W;
     canvas.height = H;
 
     try {
-      const src      = cv.imread(video);
+      // Draw video to intermediate canvas first — required on mobile browsers
+      const snap = getSnapCanvas(W, H);
+      snap.getContext('2d')!.drawImage(video, 0, 0, W, H);
+      const src      = cv.imread(snap);
       const small    = new cv.Mat();
       const gray     = new cv.Mat();
       const blurred  = new cv.Mat();
@@ -136,7 +171,6 @@ export function ScanPage() {
       const contours = new cv.MatVector();
       const hier     = new cv.Mat();
 
-      // Process at half resolution for performance
       cv.resize(src, small, new cv.Size(W / 2, H / 2));
       cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
       cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
@@ -168,16 +202,14 @@ export function ScanPage() {
       ctx.clearRect(0, 0, W, H);
 
       if (bestContour) {
-        // Scale back: half-res × 2, then CSS scale
-        const scaleX = (canvas.clientWidth  / W) * 2;
-        const scaleY = (canvas.clientHeight / H) * 2;
+        // Contour coords are in half-res space (W/2 × H/2).
+        // The overlay canvas intrinsic size is W×H → just ×2, no CSS ratio needed.
         const pts: [number, number][] = [];
         for (let i = 0; i < bestContour.rows; i++) {
-          pts.push([bestContour.data32S[i * 2] * scaleX, bestContour.data32S[i * 2 + 1] * scaleY]);
+          pts.push([bestContour.data32S[i * 2] * 2, bestContour.data32S[i * 2 + 1] * 2]);
         }
         const detected: Quad = { pts };
 
-        // Stability tracking
         const isStable = lastQuadRef.current !== null &&
           quadDist(lastQuadRef.current, detected) < STABLE_DIST_THRESHOLD;
 
@@ -189,14 +221,12 @@ export function ScanPage() {
         const progress = stableCountRef.current / STABLE_FRAMES_REQUIRED;
         setAutoProgress(progress);
 
-        // Color transitions blue → green as stability grows
         const r = 0;
-        const g = Math.round(150 + 105 * progress);       // 150→255
-        const b = Math.round(243 * (1 - progress));        // 243→0
+        const g = Math.round(150 + 105 * progress);
+        const b = Math.round(243 * (1 - progress));
         const color = `rgb(${r},${g},${b})`;
         const glowA = 0.3 + 0.3 * progress;
 
-        // Semi-transparent fill
         ctx.fillStyle = `rgba(${r},${g},${b},${0.07 + 0.06 * progress})`;
         ctx.beginPath();
         ctx.moveTo(pts[0][0], pts[0][1]);
@@ -204,7 +234,6 @@ export function ScanPage() {
         ctx.closePath();
         ctx.fill();
 
-        // Outline
         ctx.strokeStyle = color;
         ctx.lineWidth   = 3;
         ctx.shadowColor = `rgba(${r},${g},${b},${glowA})`;
@@ -215,7 +244,6 @@ export function ScanPage() {
         ctx.closePath();
         ctx.stroke();
 
-        // Corner circles: outer colored, inner white
         ctx.shadowBlur = 0;
         pts.forEach(p => {
           ctx.fillStyle = color;
@@ -224,7 +252,6 @@ export function ScanPage() {
           ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI * 2); ctx.fill();
         });
 
-        // Auto-capture when fully stable
         if (progress >= 1 && !capturingRef.current) {
           capturingRef.current = true;
           cancelAnimationFrame(animFrameRef.current);
@@ -241,33 +268,28 @@ export function ScanPage() {
         lastQuadRef.current    = null;
         setAutoProgress(0);
 
-        // OCR fallback: at most once every 2 s, snapshot current frame and
-        // draw a dashed rectangle around the detected text bounds
+        // OCR fallback: throttled to once every 2 s
+        // Reuse the snap canvas already drawn above (no new drawImage needed)
         const now = Date.now();
         if (now - lastOcrFallbackRef.current > 2000) {
           lastOcrFallbackRef.current = now;
-          const snap = document.createElement('canvas');
-          snap.width  = W;
-          snap.height = H;
-          snap.getContext('2d')!.drawImage(video, 0, 0);
-          detectTextBounds(snap).then(bounds => {
+          // Clone pixels from the already-drawn snap canvas
+          const ocrSnap = document.createElement('canvas');
+          ocrSnap.width  = W;
+          ocrSnap.height = H;
+          ocrSnap.getContext('2d')!.drawImage(snap, 0, 0);
+          detectTextBounds(ocrSnap).then(bounds => {
             if (!bounds || !overlayCanvasRef.current) return;
             const oCtx = overlayCanvasRef.current.getContext('2d');
             if (!oCtx) return;
-            // Scale from snap (native res) to overlay CSS size
-            const scaleX = overlayCanvasRef.current.clientWidth  / W;
-            const scaleY = overlayCanvasRef.current.clientHeight / H;
-            const rx = bounds.x * scaleX;
-            const ry = bounds.y * scaleY;
-            const rw = bounds.w * scaleX;
-            const rh = bounds.h * scaleY;
+            // bounds are in native-res space (W×H) → draw directly, no CSS scale
             oCtx.clearRect(0, 0, W, H);
             oCtx.strokeStyle = '#2196F3';
-            oCtx.lineWidth   = 2;
+            oCtx.lineWidth   = 3;
             oCtx.setLineDash([10, 6]);
             oCtx.shadowColor = 'rgba(33,150,243,0.4)';
             oCtx.shadowBlur  = 10;
-            oCtx.strokeRect(rx, ry, rw, rh);
+            oCtx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
             oCtx.setLineDash([]);
             oCtx.shadowBlur = 0;
           }).catch(() => {});
@@ -291,7 +313,7 @@ export function ScanPage() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [state, drawEdgeOverlay]);
 
-  // ── Auto-capture: green flash → vibrate → capture → resume loop ──────────
+  // ── Auto-capture ──────────────────────────────────────────────────────────
   const triggerAutoCapture = () => {
     setFlashGreen(true);
     if ('vibrate' in navigator) navigator.vibrate([30, 20, 30]);
@@ -309,7 +331,7 @@ export function ScanPage() {
     }, 250);
   };
 
-  // ── Capture one frame (perspective-corrected) ─────────────────────────────
+  // ── Capture one frame ─────────────────────────────────────────────────────
   const captureFrame = (onDone?: () => void) => {
     if (!videoRef.current || !canvasRef.current) { onDone?.(); return; }
     const video  = videoRef.current;
@@ -329,8 +351,7 @@ export function ScanPage() {
       } catch (_) {}
     }
 
-    // Run OCR asynchronously — doesn't block the capture flow
-    // We grab the pixel data now (synchronously) so it isn't overwritten
+    // OCR async — snapshot before toBlob overwrites
     const ocrCanvas = document.createElement('canvas');
     ocrCanvas.width  = canvas.width;
     ocrCanvas.height = canvas.height;
@@ -349,7 +370,6 @@ export function ScanPage() {
     }, 'image/jpeg', 0.97);
   };
 
-  // Manual shutter
   const captureManual = () => {
     if (capturingRef.current) return;
     capturingRef.current = true;
@@ -407,7 +427,7 @@ export function ScanPage() {
 
       const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
       const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, maxW, 0, maxW, maxH, 0, maxH]);
-      const M = cv.getPerspectiveTransform(srcPts, dstPts);
+      const M   = cv.getPerspectiveTransform(srcPts, dstPts);
       const dst = new cv.Mat();
       cv.warpPerspective(src, dst, M, new cv.Size(maxW, maxH));
       srcPts.delete(); dstPts.delete(); M.delete();
@@ -421,7 +441,7 @@ export function ScanPage() {
     stopCamera();
     setState('processing');
     try {
-      const name = generateFileName('scan');
+      const name    = generateFileName('scan');
       const ocrText = ocrTextRef.current || undefined;
       await pdfService.imagesToPdf(scannedPages, name, ocrText);
       setPageCount(scannedPages.length);
@@ -436,53 +456,45 @@ export function ScanPage() {
   const reset = () => {
     setScannedPages([]); setPageCount(0); setError('');
     ocrTextRef.current = '';
-    setState('idle'); stopCamera();
+    startCamera();
   };
 
-  // ── IDLE ──────────────────────────────────────────────────────────────────
-  if (state === 'idle') return (
-    <div className="page">
-      <Header />
-      <div className="page-content">
-        <div className={styles.idleContainer}>
-          <div className={styles.scanIcon}><ScanText size={48} color="var(--color-primary)" /></div>
-          <h2 className={styles.idleTitle}>{t('scan_title')}</h2>
-          <p className={styles.idleSub}>{t('scan_subtitle').replace(/\\n/g, '\n')}</p>
-          <div className={styles.features}>
-            {[
-              { icon: <Zap size={16} />,        label: t('scan_feature_auto_detect') },
-              { icon: <Crop size={16} />,       label: t('scan_feature_bg_remove') },
-              { icon: <FileOutput size={16} />, label: t('scan_feature_save_pdf') },
-            ].map((f, i) => (
-              <div key={i} className={styles.featureRow}>
-                <span className={styles.featureIcon}>{f.icon}</span>
-                <span className={styles.featureLabel}>{f.label}</span>
-              </div>
-            ))}
-          </div>
-          <button className={styles.startBtn} onClick={startCamera} disabled={!cvReady}>
-            {cvReady ? t('scan_start') : 'Loading AI…'}
-          </button>
+  // ── STARTING — fond noir, pas de header/nav ───────────────────────────────
+  if (state === 'starting') return (
+    <div className={styles.cameraPage}>
+      <div className={styles.cameraView} />
+      {/* Top bar already visible so X button works during permission prompt */}
+      <div className={styles.topBar} style={{ background: 'transparent' }}>
+        <div />
+        <button className={styles.closeBtn} onClick={() => navigate(-1)}>
+          <X size={20} strokeWidth={2.5} />
+        </button>
+      </div>
+      <div className={styles.bottomBar}>
+        <p className={styles.hintText}>Starting camera…</p>
+        <div className={styles.shutterWrap} style={{ opacity: 0.3, pointerEvents: 'none' }}>
+          <svg className={styles.progressRing} viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
+          </svg>
+          <div className={styles.shutterInner} />
         </div>
+        <div style={{ height: 'env(safe-area-inset-bottom, 12px)' }} />
       </div>
     </div>
   );
 
-  // ── CAMERA — true fullscreen, no header, no bottom nav ───────────────────
+  // ── CAMERA ────────────────────────────────────────────────────────────────
   if (state === 'camera') return (
     <div className={styles.cameraPage}>
 
-      {/* Green flash on auto-capture */}
       {flashGreen && <div className={styles.flashOverlay} />}
 
-      {/* Full-bleed video + detection overlay */}
       <div className={styles.cameraView}>
         <video ref={videoRef} className={styles.video} playsInline muted autoPlay />
         <canvas ref={overlayCanvasRef} className={styles.overlayCanvas} />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
 
-      {/* Top bar: page count (left) + Save PDF / × (right) */}
       <div className={styles.topBar}>
         <div className={styles.pageCounter}>
           <span className={styles.pageCountNum}>{scannedPages.length}</span>
@@ -501,7 +513,6 @@ export function ScanPage() {
         </div>
       </div>
 
-      {/* Bottom bar: hint + shutter with progress ring */}
       <div className={styles.bottomBar}>
         <p className={styles.hintText}>
           {autoProgress >= 1
@@ -513,10 +524,8 @@ export function ScanPage() {
 
         <button className={styles.shutterWrap} onClick={captureManual} aria-label="Capture">
           <svg className={styles.progressRing} viewBox="0 0 80 80">
-            {/* Track */}
             <circle cx="40" cy="40" r="34" fill="none"
               stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
-            {/* Progress arc */}
             <circle cx="40" cy="40" r="34" fill="none"
               stroke={autoProgress > 0.5 ? '#4caf50' : '#2196F3'}
               strokeWidth="4"
@@ -530,7 +539,6 @@ export function ScanPage() {
           <div className={styles.shutterInner} />
         </button>
 
-        {/* Safe-area spacer */}
         <div style={{ height: 'env(safe-area-inset-bottom, 12px)' }} />
       </div>
     </div>
