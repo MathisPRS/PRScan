@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CircleCheck, CircleAlert, RotateCcw, Check } from 'lucide-react';
 import { Header } from '../components';
 import { pdfService } from '../services/pdfService';
@@ -10,7 +10,7 @@ import styles from './ScanPage.module.css';
 
 declare const cv: any;
 
-type ScanState = 'idle' | 'processing' | 'review' | 'saving' | 'done' | 'error';
+type ScanState = 'processing' | 'review' | 'saving' | 'done' | 'error' | 'idle';
 
 // ─── OpenCV lazy loader ────────────────────────────────────────────────────────
 let cvLoadPromise: Promise<void> | null = null;
@@ -50,7 +50,6 @@ function tryPerspectiveCorrect(
     cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
     cv.Canny(blur, edge, 35, 120);
 
-    // Dilate slightly so edges close up gaps
     const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
     cv.dilate(edge, edge, kernel);
     kernel.delete();
@@ -87,7 +86,6 @@ function tryPerspectiveCorrect(
       return { canvas: out, detected: false };
     }
 
-    // Order corners: TL, TR, BR, BL
     const raw: { x: number; y: number }[] = [];
     for (let i = 0; i < 4; i++)
       raw.push({ x: best.data32S[i * 2], y: best.data32S[i * 2 + 1] });
@@ -155,46 +153,48 @@ function fileToCanvas(file: File): Promise<HTMLCanvasElement> {
 export function ScanPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [state, setState]           = useState<ScanState>('idle');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [detected, setDetected]     = useState(false);
-  const [error, setError]           = useState('');
-  const [pageCount, setPageCount]   = useState(0);
+  const [state, setState]             = useState<ScanState>('idle');
+  const [rawUrl, setRawUrl]           = useState<string | null>(null);   // photo brute
+  const [previewUrl, setPreviewUrl]   = useState<string | null>(null);   // photo corrigée
+  const [detected, setDetected]       = useState(false);
+  const [error, setError]             = useState('');
+  const [pageCount, setPageCount]     = useState(0);
 
   const pagesRef       = useRef<Blob[]>([]);
   const ocrTextRef     = useRef<string>('');
   const resultCanvas   = useRef<HTMLCanvasElement | null>(null);
   const inputRef       = useRef<HTMLInputElement>(null);
 
-  // Pre-warm OCR + start loading OpenCV in background on mount
+  // ── On mount: process file passed via navigate state, or show idle ──────────
   useEffect(() => {
     warmupOCR();
     loadOpenCV();
-    // Trigger native camera immediately (small delay so DOM is ready)
-    const timer = setTimeout(() => inputRef.current?.click(), 120);
-    return () => clearTimeout(timer);
+
+    const file: File | undefined = (location.state as any)?.file;
+    if (file) {
+      processFile(file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCamera = () => inputRef.current?.click();
 
   const clearPreview = () => {
+    if (rawUrl)     { URL.revokeObjectURL(rawUrl);     setRawUrl(null); }
     if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
     resultCanvas.current = null;
   };
 
-  // ── File selected from native camera/gallery ───────────────────────────────
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // reset so the same photo can be retaken
-    if (!file) {
-      // User cancelled — go back if no pages accumulated yet
-      if (pagesRef.current.length === 0) navigate(-1);
-      return;
-    }
-
+  // ── Core processing ─────────────────────────────────────────────────────────
+  const processFile = async (file: File) => {
     setState('processing');
-    clearPreview();
+
+    // Show raw photo immediately as background
+    const objectUrl = URL.createObjectURL(file);
+    setRawUrl(objectUrl);
+    setPreviewUrl(null);
 
     try {
       await loadOpenCV();
@@ -204,11 +204,24 @@ export function ScanPage() {
       resultCanvas.current = canvas;
       setDetected(det);
       setPreviewUrl(canvas.toDataURL('image/jpeg', 0.95));
+      // Keep rawUrl visible until corrected is ready — replaced by previewUrl in review state
       setState('review');
     } catch (err: any) {
       setError(err?.message ?? 'Processing failed');
       setState('error');
     }
+  };
+
+  // ── File selected from native camera (for "retry" / "add page" flows) ───────
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) {
+      if (pagesRef.current.length === 0) navigate(-1);
+      return;
+    }
+    clearPreview();
+    await processFile(file);
   };
 
   // ── Commit current page to session, then save PDF ──────────────────────────
@@ -223,7 +236,6 @@ export function ScanPage() {
       ));
     pagesRef.current = [...pagesRef.current, blob];
 
-    // OCR in background
     const ocrC = document.createElement('canvas');
     ocrC.width  = resultCanvas.current.width;
     ocrC.height = resultCanvas.current.height;
@@ -279,11 +291,10 @@ export function ScanPage() {
     ocrTextRef.current = '';
     clearPreview();
     setPageCount(0);
-    setState('idle');
-    openCamera();
+    navigate('/');   // back to tools — user will tap Scan again to start fresh
   };
 
-  // ── Hidden file input — triggers native camera ─────────────────────────────
+  // ── Hidden file input (for retry / add page flows) ─────────────────────────
   const fileInput = (
     <input
       ref={inputRef}
@@ -295,20 +306,35 @@ export function ScanPage() {
     />
   );
 
-  // ── PROCESSING / SAVING ────────────────────────────────────────────────────
-  if (state === 'processing' || state === 'saving') return (
+  // ── PROCESSING — raw photo as bg + overlay spinner ─────────────────────────
+  if (state === 'processing') return (
+    <div className="page">
+      {fileInput}
+      <div className={styles.processingScreen}>
+        {/* Raw photo fills the screen */}
+        {rawUrl && (
+          <img src={rawUrl} alt="" className={styles.processingBg} />
+        )}
+        {/* Dark overlay + spinner on top */}
+        <div className={styles.processingOverlay}>
+          <div className={styles.spinner} />
+          <p className={styles.overlayText}>Analyse du document…</p>
+          <p className={styles.overlaySub}>Détection des bords en cours</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── SAVING ─────────────────────────────────────────────────────────────────
+  if (state === 'saving') return (
     <div className="page">
       {fileInput}
       <Header showBack onBack={() => navigate(-1)} />
       <div className={styles.center}>
         <div className={styles.spinner} />
-        <p className={styles.statusTitle}>
-          {state === 'saving' ? t('scan_processing') : 'Analyse du document…'}
-        </p>
+        <p className={styles.statusTitle}>{t('scan_processing')}</p>
         <p className={styles.statusSub}>
-          {state === 'saving'
-            ? t('scan_processing_subtitle').replace('%d', String(pagesRef.current.length))
-            : 'Détection des bords en cours'}
+          {t('scan_processing_subtitle').replace('%d', String(pagesRef.current.length))}
         </p>
       </div>
     </div>
@@ -330,7 +356,6 @@ export function ScanPage() {
       />
       <div className={styles.reviewContent}>
 
-        {/* Preview — fills available space, shows full document */}
         <div className={styles.previewWrapper}>
           <img src={previewUrl} alt="Document" className={styles.previewImg} />
           {detected ? (
@@ -340,7 +365,6 @@ export function ScanPage() {
           )}
         </div>
 
-        {/* Actions */}
         <div className={styles.reviewActions}>
           {pagesRef.current.length > 0 && (
             <p className={styles.pageHint}>
@@ -402,8 +426,7 @@ export function ScanPage() {
     </div>
   );
 
-  // ── IDLE ───────────────────────────────────────────────────────────────────
-  // Shown briefly while camera opens, or if user cancels with pages already taken
+  // ── IDLE — shown if user navigates to /scan directly without a file ─────────
   return (
     <div className="page">
       {fileInput}
@@ -432,10 +455,9 @@ export function ScanPage() {
           </>
         ) : (
           <>
-            <div className={styles.spinner} />
-            <p className={styles.statusSub}>Ouverture de l'appareil photo…</p>
-            <button className={styles.btnGhost} style={{ marginTop: 16 }} onClick={openCamera}>
-              Ouvrir la caméra
+            <p className={styles.statusSub}>Appuyez sur "Scan Document" pour commencer</p>
+            <button className={styles.btnGhost} onClick={() => navigate('/')}>
+              Retour
             </button>
           </>
         )}
