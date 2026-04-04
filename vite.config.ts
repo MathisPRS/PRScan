@@ -23,6 +23,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Force immediate takeover — no waiting for next navigation
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
